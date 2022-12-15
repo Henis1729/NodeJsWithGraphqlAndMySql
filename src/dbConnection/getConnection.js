@@ -1,4 +1,5 @@
 import mysql from "mysql2";
+import bluebird from "bluebird";
 let { DEV, HOST, USERNAME, PASSWORD, DATABASE } = process.env;
 
 export const getConnectionDB = async () => {
@@ -7,6 +8,7 @@ export const getConnectionDB = async () => {
       host: HOST,
       user: USERNAME,
       password: PASSWORD,
+      Promise: bluebird
     });
   } catch (err) {
     console.error(err);
@@ -25,6 +27,7 @@ export const getPool = async () => {
       connectionLimit: 10,
       queueLimit: 0,
     });
+    // }).promise();
   } catch (err) {
     console.error(err);
     throw new Error(err);

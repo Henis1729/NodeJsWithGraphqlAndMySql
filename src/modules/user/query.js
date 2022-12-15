@@ -1,7 +1,6 @@
 export const userQuery = {
   getUserById: (parent, { USERID }, { pool }) => {
     return new Promise(async (resolve, reject) => {
-      let connection;
       try {
         pool.getConnection((err, connection) => {
           if (err) throw err;
@@ -25,13 +24,48 @@ export const userQuery = {
   getAllUser: (parent, args, { pool }) => {
     return new Promise(async (resolve, reject) => {
       try {
-        pool.getConnection((err, connection) => {
-          if (err) throw err;
+        pool.getConnection(async (err, connection) => {
+          if (err) reject(err);
+          /* ****************************** Direct query statement ******************************  */
           connection.query("SELECT * FROM users", (error, results) => {
+            if (error) reject(error);
             resolve(results);
-            pool.releaseConnection(connection);
-            if (error) throw error;
           });
+
+          /* ****************************** Automatic creation, cached and re-used by connection ******************************  */
+          connection.execute('select 1 + ? + ? as result', [5, 6], (err, rows) => {
+            if (err) reject(err);
+            console.log("🚀 ~ file: query.js:28 ~ connection.execute ~ rows", rows)
+          });
+          connection.unprepare('select 1 + ? + ? as result');
+
+          /* ****************************** Prepared statements ******************************  */
+          connection.prepare('select ? + ? as tests', (err, statement) => {
+            if (err) reject(err);
+            console.time("Test case 1")
+            statement.execute([1, 2], (err, rows) => {
+              if (err) reject(err);
+              console.log("🚀 ~ file: query.js:36 ~ statement.execute ~ rows", rows)
+            });
+            console.timeEnd("Test case 1");
+            console.time("Test case 2");
+            statement.execute([2, 5], (err, rows) => {
+              if (err) reject(err);
+              console.log("🚀 ~ file: query.js:51 ~ statement.execute ~ rows", rows)
+            });
+            console.timeEnd("Test case 2")
+            console.time("Test case 3")
+            statement.execute([10, 11], (err, rows) => {
+              if (err) reject(err);
+              console.log("🚀 ~ file: query.js:55 ~ statement.execute ~ rows", rows)
+            });
+            console.timeEnd("Test case 3")
+            statement.close();
+          });
+
+          /* ****************************** Using Promise Wrapper ******************************  */
+
+          pool.releaseConnection(connection);
         });
       } catch (error) {
         reject(error);
